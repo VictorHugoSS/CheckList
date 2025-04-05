@@ -4,8 +4,14 @@ from datetime import date
 
 st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
-# Estilo e HTML com scanner e ícone embutido
-st.markdown(
+st.markdown("## 🧾 Checklist com Leitor Integrado")
+
+# Criar um espaço no Streamlit para exibir o valor escaneado
+if "codigo_lido" not in st.session_state:
+    st.session_state["codigo_lido"] = ""
+
+# Campo customizado com botão de scanner e ícone personalizado
+components.html(
     f"""
     <style>
         .barcode-wrapper {{
@@ -41,14 +47,10 @@ st.markdown(
             max-width: 400px;
             width: 100%;
         }}
-        section.main > div {{
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }}
     </style>
 
     <div class="barcode-wrapper">
-        <input class="barcode-input" id="barcodeInput" placeholder="Número do Ticket" aria-label="Número do Ticket"/>
+        <input class="barcode-input" id="barcodeInput" placeholder="Número do Ticket" />
         <button class="barcode-btn" onclick="startScanner()">
             <img src="https://i.imgur.com/oJHSmE3.png" alt="Scan">
         </button>
@@ -64,17 +66,22 @@ st.markdown(
         function startScanner() {{
             if (scannerStarted) return;
             scannerStarted = true;
+
             html5QrcodeScanner = new Html5Qrcode("reader");
 
             html5QrcodeScanner.start(
                 {{ facingMode: {{ exact: "environment" }} }},
                 {{ fps: 10, qrbox: 250 }},
                 (decodedText) => {{
-                    const input = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
-                    if (input) {{
-                        input.value = decodedText;
-                        input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    }}
+                    document.getElementById("barcodeInput").value = decodedText;
+
+                    // Enviar valor para Streamlit
+                    const streamlitEvent = new CustomEvent("streamlit:setComponentValue", {{
+                        detail: {{ value: decodedText }},
+                        bubbles: true
+                    }});
+                    window.parent.document.dispatchEvent(streamlitEvent);
+
                     html5QrcodeScanner.stop().then(() => {{
                         document.getElementById("reader").innerHTML = "";
                         scannerStarted = false;
@@ -88,14 +95,20 @@ st.markdown(
         }}
     </script>
     """,
-    unsafe_allow_html=True
+    height=530
 )
 
-st.markdown("## 🧾 Checklist com Leitor Integrado")
+# Captura do código escaneado (sem campo duplicado!)
+codigo = st.experimental_get_query_params().get("ticket", [""])[0]
 
-# Campo preenchido automaticamente (scanner + texto)
-codigo = st.text_input("Número do Ticket", key="ticket")
+# Alternativa: mostrar o valor diretamente
+if "value" in st.session_state:
+    st.session_state["codigo_lido"] = st.session_state["value"]
 
+if st.session_state["codigo_lido"]:
+    st.success(f"Código escaneado: {st.session_state['codigo_lido']}")
+
+# Agora os campos normais do checklist
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -110,7 +123,7 @@ observacoes = st.text_area("Observações")
 
 if st.button("Salvar"):
     dados = {
-        "ticket": codigo,
+        "ticket": st.session_state["codigo_lido"],
         "colaborador": colaborador,
         "data": data.isoformat(),
         "equipamento_limpo": check1,
