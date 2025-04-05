@@ -3,70 +3,82 @@ import streamlit.components.v1 as components
 from datetime import date
 
 st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
-
-st.title("📋 Checklist com Leitor Integrado")
-
-# Campo estilizado com ícone e botão embutido
-components.html(
+st.markdown(
     """
     <style>
-        .barcode-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 1rem;
-        }
+    .barcode-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin-bottom: 10px;
+    }
 
-        input.barcode-input {
-            width: 100%;
-            padding: 0.6rem 2.5rem 0.6rem 0.8rem;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
+    input.barcode-input {
+        width: 100%;
+        padding: 0.6rem 2.5rem 0.6rem 0.8rem;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+    }
 
-        .barcode-btn {
-            position: absolute;
-            top: 50%;
-            right: 10px;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
+    .barcode-btn {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
 
-        .barcode-btn img {
-            width: 24px;
-            height: 24px;
-        }
+    .barcode-btn img {
+        width: 22px;
+        height: 22px;
+    }
 
-        #reader {
-            margin-top: 1rem;
-        }
+    #reader {
+        margin-top: 10px;
+        max-width: 400px;
+        width: 100%;
+    }
+
+    section.main > div {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
     </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown("## 🧾 Checklist com Leitor Integrado")
+
+# Componente HTML do campo com botão e leitor
+components.html(
+    """
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
     <div class="barcode-wrapper">
         <input class="barcode-input" id="barcodeInput" placeholder="Número do Ticket" aria-label="Número do Ticket"/>
         <button class="barcode-btn" onclick="startScanner()">
-            <img src="https://cdn-icons-png.flaticon.com/512/565/565547.png" alt="Scan">
+            <img src="https://cdn-icons-png.flaticon.com/512/545/545705.png" alt="Scan">
         </button>
     </div>
 
-    <div id="reader" style="width: 100%; max-width: 400px;"></div>
+    <div id="reader"></div>
 
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         let scannerStarted = false;
         let html5QrcodeScanner;
 
         function startScanner() {
             if (scannerStarted) return;
-
             scannerStarted = true;
             html5QrcodeScanner = new Html5Qrcode("reader");
 
             html5QrcodeScanner.start(
-                { facingMode: { exact: "environment" } },  // força traseira
+                { facingMode: { exact: "environment" } },
                 {
                     fps: 10,
                     qrbox: 250
@@ -82,9 +94,7 @@ components.html(
                         scannerStarted = false;
                     });
                 },
-                (errorMessage) => {
-                    // erros ignorados
-                }
+                (errorMessage) => {}
             ).catch(err => {
                 console.error(err);
                 scannerStarted = false;
@@ -92,10 +102,14 @@ components.html(
         }
     </script>
     """,
-    height=550
+    height=520
 )
 
-# Agora o restante do formulário
+# Campo que será preenchido pelo scanner
+# (O valor virá via JavaScript no input com mesmo label)
+codigo = st.text_input("Número do Ticket", key="ticket")
+
+# Campos normais do checklist
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -110,7 +124,7 @@ observacoes = st.text_area("Observações")
 
 if st.button("Salvar"):
     dados = {
-        "ticket": st.session_state.get("Número do Ticket", ""),
+        "ticket": codigo,
         "colaborador": colaborador,
         "data": data.isoformat(),
         "equipamento_limpo": check1,
