@@ -2,86 +2,46 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import date
 
-st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
+st.set_page_config(page_title="Checklist Scanner", layout="centered")
 
-st.markdown("""
-    <style>
-    .barcode-wrapper {
-        position: relative;
-        width: 100%;
-        max-width: 400px;
-        margin-bottom: 1rem;
-    }
+st.title("📋 Checklist com Leitor")
 
-    input#ticket_input {
-        width: 100%;
-        padding: 0.6rem 2.5rem 0.6rem 0.8rem;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-    }
+ticket = st.text_input("Número do Ticket", key="ticket")
 
-    .barcode-btn {
-        position: absolute;
-        top: 50%;
-        right: 10px;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        padding: 0;
-        cursor: pointer;
-    }
+# Local onde o scanner será exibido temporariamente
+scanner_placeholder = st.empty()
 
-    .barcode-btn img {
-        width: 24px;
-        height: 24px;
-    }
+if st.button("📷 Escanear Código"):
+    with scanner_placeholder:
+        components.html(
+            """
+            <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+            <div id="reader" style="width: 100%; max-width: 400px;"></div>
+            <script>
+                const scanner = new Html5Qrcode("reader");
+                scanner.start(
+                    { facingMode: { exact: "environment" } },
+                    { fps: 10, qrbox: 250 },
+                    function(decodedText) {
+                        const input = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
+                        if (input) {
+                            input.value = decodedText;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        scanner.stop().then(() => {
+                            document.getElementById("reader").innerHTML = "✅ Código escaneado!";
+                        });
+                    },
+                    function(error) {}
+                ).catch(err => {
+                    document.getElementById("reader").innerHTML = "🚫 Erro ao abrir câmera.";
+                });
+            </script>
+            """,
+            height=440
+        )
 
-    #reader {
-        margin-top: 10px;
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("## 🧾 Checklist com Scanner Integrado")
-
-# Campo de input (real) com scanner embutido por HTML
-codigo = st.text_input("Número do Ticket", key="ticket", label_visibility="collapsed", placeholder="Número do Ticket")
-
-# Scanner aparece após clicar no botão
-if st.button("📷 Abrir Scanner"):
-    components.html(
-        """
-        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-        <div id="reader"></div>
-        <script>
-            const scanner = new Html5Qrcode("reader");
-            scanner.start(
-                { facingMode: { exact: "environment" } },
-                { fps: 10, qrbox: 250 },
-                function(decodedText) {
-                    const input = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
-                    if (input) {
-                        input.value = decodedText;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                    scanner.stop().then(() => {
-                        document.getElementById("reader").innerHTML = "✅ Código escaneado!";
-                    });
-                },
-                function(error) {}
-            ).catch(err => {
-                document.getElementById("reader").innerHTML = "🚫 Erro ao acessar câmera.";
-            });
-        </script>
-        """,
-        height=460
-    )
-
-# Demais campos
+# Checklist
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -99,7 +59,7 @@ observacoes = st.text_area("Observações")
 
 if st.button("Salvar"):
     dados = {
-        "ticket": codigo,
+        "ticket": ticket,
         "colaborador": colaborador,
         "data": data.isoformat(),
         "equipamento_limpo": check1,
@@ -109,5 +69,6 @@ if st.button("Salvar"):
         "area_isolada": check5,
         "observacoes": observacoes
     }
+    scanner_placeholder.empty()  # remove o scanner do layout
     st.success("Checklist salvo com sucesso!")
     st.write(dados)
