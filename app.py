@@ -3,6 +3,7 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import cv2
 from datetime import date
 
+# Detector usando OpenCV (QR code)
 class QRCodeScanner(VideoTransformerBase):
     def __init__(self):
         self.result = ""
@@ -23,16 +24,9 @@ class QRCodeScanner(VideoTransformerBase):
 
 st.title("Checklist com Leitor de QR Code")
 
-st.markdown("### 📷 Escaneie o QR Code com a câmera traseira")
+st.markdown("### 📷 Escaneie o QR Code com a câmera")
 
-ctx = webrtc_streamer(
-    key="qrscanner",
-    video_transformer_factory=QRCodeScanner,
-    media_stream_constraints={
-        "video": {"facingMode": "environment"},  # força câmera traseira
-        "audio": False
-    }
-)
+ctx = webrtc_streamer(key="qrscanner", video_transformer_factory=QRCodeScanner)
 
 qr_code = ""
 if ctx.video_transformer:
