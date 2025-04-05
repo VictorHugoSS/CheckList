@@ -1,10 +1,41 @@
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
 from datetime import date
 
-st.title("Checklist de Inspeção")
+# Transformador para leitura de QR/barcode
+class BarcodeReader(VideoTransformerBase):
+    def __init__(self):
+        self.result = ""
 
-# Campo que receberá o valor do código de barras
-codigo = st.text_input("Número do Ticket (use o leitor de código de barras aqui)")
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        decoded_objs = decode(img)
+
+        for obj in decoded_objs:
+            self.result = obj.data.decode("utf-8")
+            cv2.rectangle(img, (obj.rect.left, obj.rect.top),
+                          (obj.rect.left + obj.rect.width, obj.rect.top + obj.rect.height),
+                          (0, 255, 0), 2)
+            cv2.putText(img, self.result, (obj.rect.left, obj.rect.top - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        return img
+
+st.title("Checklist com Leitor de Código de Barras")
+
+st.markdown("### 📷 Leitor de QR Code / Código de Barras")
+
+ctx = webrtc_streamer(key="barcode", video_transformer_factory=BarcodeReader)
+
+barcode = ""
+if ctx.video_transformer:
+    barcode = ctx.video_transformer.result
+
+# Formulário do checklist
+codigo = st.text_input("Número do Ticket (preenchido pela câmera ou manual)", value=barcode)
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -30,4 +61,4 @@ if st.button("Salvar"):
         "observacoes": observacoes
     }
     st.success("Checklist salvo com sucesso!")
-    st.write(dados)  # Aqui você pode integrar com SharePoint ou salvar em planilha
+    st.write(dados)
