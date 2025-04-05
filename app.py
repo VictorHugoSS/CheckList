@@ -1,38 +1,55 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-import cv2
+import streamlit.components.v1 as components
 from datetime import date
 
-# Detector usando OpenCV (QR code)
-class QRCodeScanner(VideoTransformerBase):
-    def __init__(self):
-        self.result = ""
-        self.detector = cv2.QRCodeDetector()
+st.set_page_config(page_title="Checklist com Leitor de QR/Barra", layout="centered")
 
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        data, bbox, _ = self.detector.detectAndDecode(img)
-        if bbox is not None and data:
-            self.result = data
-            for i in range(len(bbox)):
-                pt1 = tuple(bbox[i][0])
-                pt2 = tuple(bbox[(i+1) % len(bbox)][0])
-                cv2.line(img, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (0, 255, 0), 2)
-            cv2.putText(img, data, (int(bbox[0][0][0]), int(bbox[0][0][1]) - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        return img
+st.title("📋 Checklist com Leitor de QR Code / Código de Barras")
 
-st.title("Checklist com Leitor de QR Code")
+st.markdown("### 📸 Leitor integrado (use a câmera do celular)")
 
-st.markdown("### 📷 Escaneie o QR Code com a câmera")
+# Componente HTML/JS que escaneia QR Code e Códigos de Barras
+components.html(
+    """
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <div id="reader" style="width:100%; max-width:400px"></div>
+    <input type="text" id="barcode-result" hidden>
 
-ctx = webrtc_streamer(key="qrscanner", video_transformer_factory=QRCodeScanner)
+    <script>
+        function docReady(fn) {
+            if (document.readyState === "complete" || document.readyState === "interactive") {
+                setTimeout(fn, 1);
+            } else {
+                document.addEventListener("DOMContentLoaded", fn);
+            }
+        }
 
-qr_code = ""
-if ctx.video_transformer:
-    qr_code = ctx.video_transformer.result
+        docReady(function () {
+            const resultBox = document.getElementById("barcode-result");
 
-codigo = st.text_input("Número do Ticket (preenchido automaticamente)", value=qr_code)
+            const scanner = new Html5QrcodeScanner("reader", {
+                fps: 10,
+                qrbox: 250,
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            });
+
+            scanner.render((decodedText, decodedResult) => {
+                resultBox.value = decodedText;
+                const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+                if (streamlitInput) {
+                    streamlitInput.value = decodedText;
+                    streamlitInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+    </script>
+    """,
+    height=450,
+)
+
+# Campo preenchido automaticamente após leitura
+codigo = st.text_input("Número do Ticket (preenchido automaticamente)")
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
