@@ -2,47 +2,47 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import date
 
-st.set_page_config(page_title="Checklist com Scanner", layout="centered")
-st.title("📋 Checklist com Scanner")
+st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
-# Campo onde o código escaneado será exibido
+st.title("📋 Checklist com Scanner de Código")
+
+# Campo real do ticket
 codigo = st.text_input("Número do Ticket", key="ticket")
 
-# Ativador do scanner
-abrir = st.checkbox("📷 Ativar câmera")
-
-# Scanner via html5-qrcode (fora do iframe + câmera traseira)
-if abrir:
+# Ativa o scanner
+if st.button("📷 Escanear código"):
     components.html(
         """
-        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+        <script src="https://unpkg.com/html5-qrcode"></script>
         <div id="reader" style="width: 100%; max-width: 400px;"></div>
+
         <script>
             const scanner = new Html5Qrcode("reader");
             scanner.start(
-                { facingMode: { exact: "environment" } }, // traseira
+                { facingMode: { exact: "environment" } },
                 { fps: 10, qrbox: 250 },
                 (decodedText, decodedResult) => {
-                    const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-                    if (input) {
+                    const inputs = window.parent.document.querySelectorAll('input[aria-label="Número do Ticket"]');
+                    if (inputs.length > 0) {
+                        const input = inputs[0];
                         input.value = decodedText;
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                     scanner.stop().then(() => {
-                        document.getElementById("reader").innerHTML = "✔️ Código escaneado!";
+                        document.getElementById("reader").innerHTML = "<b>✅ Código escaneado!</b>";
                     });
                 },
-                (error) => { /* ignora erros */ }
-            ).catch((err) => {
-                console.error("Erro ao acessar câmera:", err);
-                document.getElementById("reader").innerHTML = "🚫 Falha ao acessar a câmera.";
+                (error) => {{ /* Ignora erros */ }}
+            ).catch(err => {
+                console.error("Erro ao acessar a câmera:", err);
+                document.getElementById("reader").innerHTML = "🚫 Erro ao abrir câmera.";
             });
         </script>
         """,
-        height=420
+        height=450
     )
 
-# Formulário do checklist
+# Formulário
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
