@@ -2,54 +2,48 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import date
 
-st.set_page_config(page_title="Checklist com Leitor de QR/Barra", layout="centered")
+st.set_page_config(page_title="Checklist com Leitor QR/Barra", layout="centered")
 
 st.title("📋 Checklist com Leitor de QR Code / Código de Barras")
 
-st.markdown("### 📸 Leitor integrado (use a câmera do celular)")
+# Estado para armazenar resultado do scanner
+if "ticket_lido" not in st.session_state:
+    st.session_state.ticket_lido = ""
 
-# Componente HTML/JS que escaneia QR Code e Códigos de Barras
-components.html(
-    """
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <div id="reader" style="width:100%; max-width:400px"></div>
-    <input type="text" id="barcode-result" hidden>
+# Botão para abrir o leitor
+if st.button("📷 Escanear código"):
+    components.html(
+        """
+        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+        <div id="reader" style="width:100%; max-width:400px; margin:auto;"></div>
+        <script>
+            const streamlitInput = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
 
-    <script>
-        function docReady(fn) {
-            if (document.readyState === "complete" || document.readyState === "interactive") {
-                setTimeout(fn, 1);
-            } else {
-                document.addEventListener("DOMContentLoaded", fn);
-            }
-        }
-
-        docReady(function () {
-            const resultBox = document.getElementById("barcode-result");
-
-            const scanner = new Html5QrcodeScanner("reader", {
-                fps: 10,
-                qrbox: 250,
-                rememberLastUsedCamera: true,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-            });
-
-            scanner.render((decodedText, decodedResult) => {
-                resultBox.value = decodedText;
-                const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+            function onScanSuccess(decodedText, decodedResult) {
+                const streamlitInput = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
                 if (streamlitInput) {
                     streamlitInput.value = decodedText;
                     streamlitInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-            });
-        });
-    </script>
-    """,
-    height=450,
-)
+                html5QrcodeScanner.clear();
+            }
 
-# Campo preenchido automaticamente após leitura
-codigo = st.text_input("Número do Ticket (preenchido automaticamente)")
+            let html5QrcodeScanner = new Html5QrcodeScanner("reader", {
+                fps: 10,
+                qrbox: 250,
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            }, false);
+
+            html5QrcodeScanner.render(onScanSuccess);
+        </script>
+        """,
+        height=500
+    )
+
+# Campo que será preenchido automaticamente
+codigo = st.text_input("Número do Ticket", value=st.session_state.ticket_lido, key="ticket")
+
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
