@@ -1,15 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from datetime import date
-import base64
 
 st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
-# Carregar o ícone enviado
-with open("ChatGPT Image 4 de abr. de 2025, 19_02_33.png", "rb") as img_file:
-    icon_base64 = base64.b64encode(img_file.read()).decode()
-
-# Estilos personalizados + scanner HTML
+# Estilo e HTML com scanner e ícone embutido
 st.markdown(
     f"""
     <style>
@@ -38,8 +33,8 @@ st.markdown(
             cursor: pointer;
         }}
         .barcode-btn img {{
-            width: 26px;
-            height: 26px;
+            width: 22px;
+            height: 22px;
         }}
         #reader {{
             margin-top: 10px;
@@ -55,7 +50,7 @@ st.markdown(
     <div class="barcode-wrapper">
         <input class="barcode-input" id="barcodeInput" placeholder="Número do Ticket" aria-label="Número do Ticket"/>
         <button class="barcode-btn" onclick="startScanner()">
-            <img src="data:image/png;base64,{icon_base64}" alt="Scan">
+            <img src="https://i.imgur.com/oJHSmE3.png" alt="Scan">
         </button>
     </div>
 
@@ -98,7 +93,7 @@ st.markdown(
 
 st.markdown("## 🧾 Checklist com Leitor Integrado")
 
-# Campo que será preenchido automaticamente (pelo scanner)
+# Campo preenchido automaticamente (scanner + texto)
 codigo = st.text_input("Número do Ticket", key="ticket")
 
 colaborador = st.text_input("Colaborador")
