@@ -2,48 +2,100 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import date
 
-st.set_page_config(page_title="Checklist com Leitor QR/Barra", layout="centered")
+st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
-st.title("📋 Checklist com Leitor de QR Code / Código de Barras")
+st.title("📋 Checklist com Leitor Integrado")
 
-# Estado para armazenar resultado do scanner
-if "ticket_lido" not in st.session_state:
-    st.session_state.ticket_lido = ""
+# Campo estilizado com ícone e botão embutido
+components.html(
+    """
+    <style>
+        .barcode-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 1rem;
+        }
 
-# Botão para abrir o leitor
-if st.button("📷 Escanear código"):
-    components.html(
-        """
-        <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-        <div id="reader" style="width:100%; max-width:400px; margin:auto;"></div>
-        <script>
-            const streamlitInput = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
+        input.barcode-input {
+            width: 100%;
+            padding: 0.6rem 2.5rem 0.6rem 0.8rem;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
 
-            function onScanSuccess(decodedText, decodedResult) {
-                const streamlitInput = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
-                if (streamlitInput) {
-                    streamlitInput.value = decodedText;
-                    streamlitInput.dispatchEvent(new Event('input', { bubbles: true }));
+        .barcode-btn {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .barcode-btn img {
+            width: 24px;
+            height: 24px;
+        }
+
+        #reader {
+            margin-top: 1rem;
+        }
+    </style>
+
+    <div class="barcode-wrapper">
+        <input class="barcode-input" id="barcodeInput" placeholder="Número do Ticket" aria-label="Número do Ticket"/>
+        <button class="barcode-btn" onclick="startScanner()">
+            <img src="https://cdn-icons-png.flaticon.com/512/565/565547.png" alt="Scan">
+        </button>
+    </div>
+
+    <div id="reader" style="width: 100%; max-width: 400px;"></div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        let scannerStarted = false;
+        let html5QrcodeScanner;
+
+        function startScanner() {
+            if (scannerStarted) return;
+
+            scannerStarted = true;
+            html5QrcodeScanner = new Html5Qrcode("reader");
+
+            html5QrcodeScanner.start(
+                { facingMode: { exact: "environment" } },  // força traseira
+                {
+                    fps: 10,
+                    qrbox: 250
+                },
+                (decodedText) => {
+                    const input = window.parent.document.querySelector('input[aria-label="Número do Ticket"]');
+                    if (input) {
+                        input.value = decodedText;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    html5QrcodeScanner.stop().then(() => {
+                        document.getElementById("reader").innerHTML = "";
+                        scannerStarted = false;
+                    });
+                },
+                (errorMessage) => {
+                    // erros ignorados
                 }
-                html5QrcodeScanner.clear();
-            }
+            ).catch(err => {
+                console.error(err);
+                scannerStarted = false;
+            });
+        }
+    </script>
+    """,
+    height=550
+)
 
-            let html5QrcodeScanner = new Html5QrcodeScanner("reader", {
-                fps: 10,
-                qrbox: 250,
-                rememberLastUsedCamera: true,
-                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-            }, false);
-
-            html5QrcodeScanner.render(onScanSuccess);
-        </script>
-        """,
-        height=500
-    )
-
-# Campo que será preenchido automaticamente
-codigo = st.text_input("Número do Ticket", value=st.session_state.ticket_lido, key="ticket")
-
+# Agora o restante do formulário
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -58,7 +110,7 @@ observacoes = st.text_area("Observações")
 
 if st.button("Salvar"):
     dados = {
-        "ticket": codigo,
+        "ticket": st.session_state.get("Número do Ticket", ""),
         "colaborador": colaborador,
         "data": data.isoformat(),
         "equipamento_limpo": check1,
