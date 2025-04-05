@@ -1,41 +1,38 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import cv2
-import numpy as np
-from pyzbar.pyzbar import decode
 from datetime import date
 
-# Transformador para leitura de QR/barcode
-class BarcodeReader(VideoTransformerBase):
+# Detector usando OpenCV (QR code)
+class QRCodeScanner(VideoTransformerBase):
     def __init__(self):
         self.result = ""
+        self.detector = cv2.QRCodeDetector()
 
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        decoded_objs = decode(img)
-
-        for obj in decoded_objs:
-            self.result = obj.data.decode("utf-8")
-            cv2.rectangle(img, (obj.rect.left, obj.rect.top),
-                          (obj.rect.left + obj.rect.width, obj.rect.top + obj.rect.height),
-                          (0, 255, 0), 2)
-            cv2.putText(img, self.result, (obj.rect.left, obj.rect.top - 10),
+        data, bbox, _ = self.detector.detectAndDecode(img)
+        if bbox is not None and data:
+            self.result = data
+            for i in range(len(bbox)):
+                pt1 = tuple(bbox[i][0])
+                pt2 = tuple(bbox[(i+1) % len(bbox)][0])
+                cv2.line(img, (int(pt1[0]), int(pt1[1])), (int(pt2[0]), int(pt2[1])), (0, 255, 0), 2)
+            cv2.putText(img, data, (int(bbox[0][0][0]), int(bbox[0][0][1]) - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
         return img
 
-st.title("Checklist com Leitor de Código de Barras")
+st.title("Checklist com Leitor de QR Code")
 
-st.markdown("### 📷 Leitor de QR Code / Código de Barras")
+st.markdown("### 📷 Escaneie o QR Code com a câmera")
 
-ctx = webrtc_streamer(key="barcode", video_transformer_factory=BarcodeReader)
+ctx = webrtc_streamer(key="qrscanner", video_transformer_factory=QRCodeScanner)
 
-barcode = ""
+qr_code = ""
 if ctx.video_transformer:
-    barcode = ctx.video_transformer.result
+    qr_code = ctx.video_transformer.result
 
-# Formulário do checklist
-codigo = st.text_input("Número do Ticket (preenchido pela câmera ou manual)", value=barcode)
+codigo = st.text_input("Número do Ticket (preenchido automaticamente)", value=qr_code)
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
