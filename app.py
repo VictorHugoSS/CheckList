@@ -4,17 +4,42 @@ from datetime import date
 
 st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
-st.title("📋 Checklist com Scanner de Código")
+st.markdown("## 🧾 Checklist com Scanner Integrado")
 
-# Campo real do ticket
+# Campo real que receberá o ticket
 codigo = st.text_input("Número do Ticket", key="ticket")
 
-# Ativa o scanner
-if st.button("📷 Escanear código"):
+# Campo visual com ícone e botão embutido
+col1, col2 = st.columns([10, 1])
+with col1:
+    st.markdown('<input class="barcode-input" id="fakeInput" placeholder="Clique no botão para escanear" disabled>', unsafe_allow_html=True)
+with col2:
+    scan = st.button("📷")
+
+# Renderiza scanner apenas se clicar no botão
+if scan:
     components.html(
         """
+        <style>
+            .barcode-input {
+                width: 100%;
+                padding: 0.6rem 2.5rem 0.6rem 0.8rem;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+            }
+            #reader {
+                margin-top: 10px;
+                max-width: 400px;
+                width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        </style>
+
         <script src="https://unpkg.com/html5-qrcode"></script>
-        <div id="reader" style="width: 100%; max-width: 400px;"></div>
+        <div id="reader"></div>
 
         <script>
             const scanner = new Html5Qrcode("reader");
@@ -32,28 +57,33 @@ if st.button("📷 Escanear código"):
                         document.getElementById("reader").innerHTML = "<b>✅ Código escaneado!</b>";
                     });
                 },
-                (error) => {{ /* Ignora erros */ }}
+                (error) => { }
             ).catch(err => {
-                console.error("Erro ao acessar a câmera:", err);
-                document.getElementById("reader").innerHTML = "🚫 Erro ao abrir câmera.";
+                console.error("Erro ao abrir câmera:", err);
+                document.getElementById("reader").innerHTML = "🚫 Erro ao acessar a câmera.";
             });
         </script>
         """,
         height=450
     )
 
-# Formulário
+# Campos do checklist (visualmente alinhados)
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
-st.subheader("Itens de Verificação")
-check1 = st.checkbox("Equipamento limpo")
-check2 = st.checkbox("Sem vazamentos")
-check3 = st.checkbox("Sinalização adequada")
-check4 = st.checkbox("EPI utilizado corretamente")
-check5 = st.checkbox("Área isolada")
+st.markdown("### Itens de Verificação")
+col_a, col_b = st.columns(2)
+with col_a:
+    check1 = st.checkbox("Equipamento limpo")
+    check2 = st.checkbox("Sem vazamentos")
+    check3 = st.checkbox("Sinalização adequada")
+with col_b:
+    check4 = st.checkbox("EPI utilizado corretamente")
+    check5 = st.checkbox("Área isolada")
+
 observacoes = st.text_area("Observações")
 
+# Botão de salvar
 if st.button("Salvar"):
     dados = {
         "ticket": codigo,
