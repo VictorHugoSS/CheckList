@@ -6,11 +6,11 @@ st.set_page_config(page_title="Checklist QR/Barra", layout="centered")
 
 st.markdown("## 🧾 Checklist com Leitor Integrado")
 
-# Criar um espaço no Streamlit para exibir o valor escaneado
-if "codigo_lido" not in st.session_state:
-    st.session_state["codigo_lido"] = ""
+# Inicializar a variável de sessão para o ticket
+if "ticket" not in st.session_state:
+    st.session_state.ticket = ""
 
-# Campo customizado com botão de scanner e ícone personalizado
+# Exibir o campo com ícone e botão de scanner
 components.html(
     f"""
     <style>
@@ -75,12 +75,12 @@ components.html(
                 (decodedText) => {{
                     document.getElementById("barcodeInput").value = decodedText;
 
-                    // Enviar valor para Streamlit
-                    const streamlitEvent = new CustomEvent("streamlit:setComponentValue", {{
-                        detail: {{ value: decodedText }},
-                        bubbles: true
-                    }});
-                    window.parent.document.dispatchEvent(streamlitEvent);
+                    // Escreve em um campo hidden usado para recuperar no Streamlit
+                    const hiddenInput = window.parent.document.querySelector('input[data-testid="stTextInput"][aria-label="Número do Ticket"]');
+                    if (hiddenInput) {{
+                        hiddenInput.value = decodedText;
+                        hiddenInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    }}
 
                     html5QrcodeScanner.stop().then(() => {{
                         document.getElementById("reader").innerHTML = "";
@@ -95,20 +95,13 @@ components.html(
         }}
     </script>
     """,
-    height=530
+    height=540
 )
 
-# Captura do código escaneado (sem campo duplicado!)
-codigo = st.experimental_get_query_params().get("ticket", [""])[0]
+# Exibir o campo real (oculto para o usuário, mas sincronizado)
+codigo = st.text_input("Número do Ticket", value=st.session_state.ticket, key="ticket")
 
-# Alternativa: mostrar o valor diretamente
-if "value" in st.session_state:
-    st.session_state["codigo_lido"] = st.session_state["value"]
-
-if st.session_state["codigo_lido"]:
-    st.success(f"Código escaneado: {st.session_state['codigo_lido']}")
-
-# Agora os campos normais do checklist
+# Campos do checklist
 colaborador = st.text_input("Colaborador")
 data = st.date_input("Data", value=date.today())
 
@@ -123,7 +116,7 @@ observacoes = st.text_area("Observações")
 
 if st.button("Salvar"):
     dados = {
-        "ticket": st.session_state["codigo_lido"],
+        "ticket": st.session_state.ticket,
         "colaborador": colaborador,
         "data": data.isoformat(),
         "equipamento_limpo": check1,
